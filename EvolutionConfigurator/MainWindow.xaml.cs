@@ -232,52 +232,79 @@ namespace EvolutionConfigurator
         }
 
         private void Clone_Click(object sender, RoutedEventArgs e)
-        {                       
+        {
+            string selectedRepositoryName = Product_combobox.SelectedItem.ToString();
+
             //Clone specified tag version to the temp folder in preperation for copying to the Evo unit
-            RunGitCommand("clone", "--branch " + Tags_combobox.SelectedItem + " " + appSettings.Get(Product_combobox.SelectedItem.ToString()), Directory.GetCurrentDirectory() + "\\Temp"); // get all tags
+            RunGitCommand("clone", "--branch " + Tags_combobox.SelectedItem + " " + appSettings.Get(selectedRepositoryName), Directory.GetCurrentDirectory() + "\\Temp"); // get all tags
 
-            //Copy Temp folder contents to selected device
-            var subDirs = Directory.GetDirectories(Directory.GetCurrentDirectory() + "\\Temp");
-
-
-            //DeleteReadOnlyDirectory(subDirs[0] + "\\.git");
-            //DeleteReadOnlyDirectory(subDirs[0] + "\\.vscode");
-
-            //File.Delete(subDirs[0] + "\\.gitignore");
-            //File.Delete(subDirs[0] + "\\.startkiosk.sh.swp");
-
-
-            //LinuxRemotecopy(Directory.GetCurrentDirectory() + "\\Temp", "/home/pi/PFC/SCP-DG-DoorPanel", true);
-            LinuxRemoteCopy(Directory.GetCurrentDirectory() + "\\Temp", "/home/pi/PFC/SCP-DG-DoorPanel", true);
-            //Delete Temp Folder Contents
-            //DeleteFolderContents(new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Temp"));
-            DeleteFolderContents(new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Temp"));
-        }
-
-       
-        void LinuxRemoteCopy(string sourceDirName, string destDirName, bool copySubDirs)
-        {           
-            
-            for(int i=0; i<dictPi.Count; i++)
+     
+            //Get selected IP from drop down menu
+            for (int i = 0; i < dictPi.Count; i++)
             {
-                if(dictPi.Values.ElementAt(i) == Devices_combobox.SelectedItem.ToString())
+                if (dictPi.Values.ElementAt(i) == Devices_combobox.SelectedItem.ToString())
                 {
                     deviceIP = dictPi.Keys.ElementAt(i).ToString();
                 }
-            }
+            }           
 
+            //Setup sftp connection outside of recursive copy be sure to close this connection after remote copy is finished
             SftpClient sftpClient = new SftpClient(deviceIP, "pi", "1X393c4db2");
             sftpClient.Connect();
 
+            //Check if folder already exists on linux system. Would be nice to report the version number found in the future.
+            if(sftpClient.Exists("/home/pi/PFC/" + selectedRepositoryName))
+            {
+                var msgBoxresult = MessageBox.Show("Target system already contains the selected software. Would you like to overwrite?", "Repository Already Present", MessageBoxButton.YesNo);
+               
+                if (msgBoxresult == MessageBoxResult.Yes)
+                {
+                    LinuxRemoteCopy(sftpClient, Directory.GetCurrentDirectory() + "\\Temp\\" + selectedRepositoryName, "/home/pi/PFC/" + selectedRepositoryName, deviceIP, "pi", "1X393c4db2", true, true);
+                }                 
+            }              
+
+            //Disconnect ftp client
+            sftpClient.Disconnect();
+
+            //Delete Temp Folder Contents            
+            DeleteFolderContents(new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Temp"));
+        }
+
+        /*
+         * A little redundant that this function requires a deviceip and user and password when you're handing it an already connected sftpclient
+         * but for the sake of making this a little more reusable I've made it this way. This is due to the requirement of using an ssh client
+         * to remove destination folders if required. Solution is to make this ssh directory removal a recursive sftpClient function.
+         * TODO: Write recursive delete for SftpClient. 
+         */
+        /// <summary>
+        /// <b>Expects SftpClient object to already be in a connected state.</b><br/>
+        /// Recursively copies all files and folders under the base directory given including creating the base directory itself at the target location.<br/>
+        /// Target location string is required to be in unix format. eg. /home/pi/PFC/scp-dg-doorpanel
+        /// </summary>
+        /// <param name="sftpClient">SftpClient object is required to be connected.</param>
+        /// <param name="sourceDirName">Path to directory of source files. This directory itself is copied and all contents.</param>
+        /// <param name="destDirName">Path to folder you wish your selected source folder to be copied to. (unix file path format required. eg. /home/pi/cooldevstuff)</param>
+        /// <param name="copySubDirs">Set to true for a recursive file copy. Otherwise only contents of root folder are copied.</param>
+        /// <param name="purgeDestination">Set this to true if you wish for any files / folders at the destination to be removed replaced.</param>
+        void LinuxRemoteCopy(SftpClient sftpClient, string deviceIP, string userName, string password, string sourceDirName, string destDirName, bool copySubDirs, bool purgeDestination)
+        {
             // Get the subdirectories for the specified directory.
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);            
+            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
 
             DirectoryInfo[] dirs = dir.GetDirectories();
-            //If the destination directory doesn't exist, create it.
-            //if (!Directory.Exists(destDirName))
-            //{
-            //    Directory.CreateDirectory(destDirName);
-            //}
+
+            if (purgeDestination)
+            {
+                /*        
+                * An ugly hack to forceably delete the directory. SftpClient does not natively support a recursive delete
+                * function so rather than writing up a whole recursive delete function myself, just connect with an ssh client and
+                * remove the directory with regular shell commands. ¯\_(ツ)_/¯
+                */
+                SshClient ssh = new SshClient(deviceIP, userName, password);
+                ssh.Connect();
+                ssh.RunCommand("sudo rm -rf " + destDirName);
+                ssh.Disconnect();
+            }        
 
             sftpClient.CreateDirectory(destDirName);
 
@@ -291,7 +318,7 @@ namespace EvolutionConfigurator
 
                 using (var fileStream = File.OpenRead(file.FullName))
                 {
-                    var result = sftpClient.BeginUploadFile(fileStream, temppath);
+                    sftpClient.UploadFile(fileStream, temppath, true);
                 }
             }
 
@@ -301,11 +328,12 @@ namespace EvolutionConfigurator
                 foreach (DirectoryInfo subdir in dirs)
                 {
                     string temppath = System.IO.Path.Combine(destDirName, subdir.Name);
-                    temppath = temppath.Replace("\\", "/");
-                    LinuxRemoteCopy(subdir.FullName, temppath, copySubDirs);
+                    temppath = temppath.Replace("\\", "/");                             //Don't delete stuff on recursive calls, only delete root folder on initial call
+                    LinuxRemoteCopy(sftpClient,deviceIP, userName, password, subdir.FullName, temppath, copySubDirs, false);
                 }
             }
         }
+        
 
 
         private void Tags_cmbobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
