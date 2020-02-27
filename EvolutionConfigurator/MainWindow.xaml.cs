@@ -87,8 +87,7 @@ namespace EvolutionConfigurator
 
             Product_combobox.SelectedIndex = 0;    
         }
-               
-
+         
         string GetRepos(string path)
         {
             string[] dir = Directory.GetDirectories(path);
@@ -255,13 +254,18 @@ namespace EvolutionConfigurator
             //Check if folder already exists on linux system. Would be nice to report the version number found in the future.
             if(sftpClient.Exists("/home/pi/PFC/" + selectedRepositoryName))
             {
-                var msgBoxresult = MessageBox.Show("Target system already contains the selected software. Would you like to overwrite?", "Repository Already Present", MessageBoxButton.YesNo);
+                var msgBoxresult = MessageBox.Show("Target system already contains the selected software.\n\nWould you like to overwrite?", "Repository Already Present", MessageBoxButton.YesNo, MessageBoxImage.Warning);
                
                 if (msgBoxresult == MessageBoxResult.Yes)
                 {
-                    LinuxRemoteCopy(sftpClient, Directory.GetCurrentDirectory() + "\\Temp\\" + selectedRepositoryName, "/home/pi/PFC/" + selectedRepositoryName, deviceIP, "pi", "1X393c4db2", true, true);
+                    LinuxRemoteCopy(sftpClient, deviceIP, "pi", "1X393c4db2", Directory.GetCurrentDirectory() + "\\Temp\\" + selectedRepositoryName, "/home/pi/PFC/" + selectedRepositoryName, true, true);
                 }                 
-            }              
+            }
+            else
+            {
+                //Folder doesn't exist just copy
+                LinuxRemoteCopy(sftpClient, deviceIP, "pi", "1X393c4db2", Directory.GetCurrentDirectory() + "\\Temp\\" + selectedRepositoryName, "/home/pi/PFC/" + selectedRepositoryName,  true, false);
+            }
 
             //Disconnect ftp client
             sftpClient.Disconnect();
@@ -334,8 +338,6 @@ namespace EvolutionConfigurator
             }
         }
         
-
-
         private void Tags_cmbobox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
 
