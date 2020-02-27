@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\wsmith\\source\\repos\\EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj": {}
+    "C:\\Users\\wsmith\\Desktop\\Development\\SCP-DG-EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj": {}
   },
   "projects": {
-    "C:\\Users\\wsmith\\source\\repos\\EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj": {
+    "C:\\Users\\wsmith\\Desktop\\Development\\SCP-DG-EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\wsmith\\source\\repos\\EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj",
+        "projectUniqueName": "C:\\Users\\wsmith\\Desktop\\Development\\SCP-DG-EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj",
         "projectName": "EvolutionConfigurator",
-        "projectPath": "C:\\Users\\wsmith\\source\\repos\\EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj",
+        "projectPath": "C:\\Users\\wsmith\\Desktop\\Development\\SCP-DG-EvolutionConfigurator\\EvolutionConfigurator\\EvolutionConfigurator.csproj",
         "packagesPath": "C:\\Users\\wsmith\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\wsmith\\source\\repos\\EvolutionConfigurator\\EvolutionConfigurator\\obj\\",
+        "outputPath": "C:\\Users\\wsmith\\Desktop\\Development\\SCP-DG-EvolutionConfigurator\\EvolutionConfigurator\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Microsoft\\Xamarin\\NuGet\\",
