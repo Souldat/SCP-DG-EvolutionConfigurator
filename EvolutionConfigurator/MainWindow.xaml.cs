@@ -85,8 +85,7 @@ namespace EvolutionConfigurator
                 RunGitCommand("fetch", "--prune --prune-tags", diri.FullName);
             }            
 
-            Product_combobox.SelectedIndex = 0;           
-           
+            Product_combobox.SelectedIndex = 0;    
         }
                
 
@@ -249,65 +248,14 @@ namespace EvolutionConfigurator
 
 
             //LinuxRemotecopy(Directory.GetCurrentDirectory() + "\\Temp", "/home/pi/PFC/SCP-DG-DoorPanel", true);
-            DirectoryCopy(Directory.GetCurrentDirectory() + "\\Temp", "/home/pi/PFC/SCP-DG-DoorPanel", true);
+            LinuxRemoteCopy(Directory.GetCurrentDirectory() + "\\Temp", "/home/pi/PFC/SCP-DG-DoorPanel", true);
             //Delete Temp Folder Contents
             //DeleteFolderContents(new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Temp"));
             DeleteFolderContents(new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Temp"));
         }
 
-        private void LinuxRemotecopy(string sourceDirName, string destDirName, bool copySubDirs)
-        {
-            SftpClient sftpClient = new SftpClient("172.16.33.243", "pi", "1X393c4db2");
-            sftpClient.Connect();
-
-            DirectoryInfo dir = new DirectoryInfo(sourceDirName);
-
-            DirectoryInfo[] dirs = dir.GetDirectories();
-
-
-            // If the destination directory doesn't exist, create it.
-            //if (!Directory.Exists(destDirName))
-            //{
-            //    Directory.CreateDirectory(destDirName);
-            //    sftpClient.CreateDirectory();
-            //}
-
-            //Assume directories don't exist on target system
-            foreach(DirectoryInfo direc in dirs)
-            {
-                sftpClient.CreateDirectory(direc.FullName);
-            }
-
-            // Get the files in the directory and copy them to the new location.
-            FileInfo[] files = dir.GetFiles();
-
-            foreach (FileInfo file in files)
-            {
-                string temppath = System.IO.Path.Combine(destDirName, file.Name);
-                //file.CopyTo(temppath, false);                
-
-                temppath = temppath.Replace("\\", "/");
-               
-                using (var fileStream = File.OpenRead(file.FullName))
-                {
-                    var result = sftpClient.BeginUploadFile(fileStream, temppath); 
-                    
-                }
-            }            
-
-            // If copying subdirectories, copy them and their contents to new location.
-            if (copySubDirs)
-            {
-                foreach (DirectoryInfo subdir in dirs)
-                {
-                    string temppath = System.IO.Path.Combine(destDirName, subdir.Name);
-                    temppath = temppath.Replace("\\", "/");
-                    LinuxRemotecopy(subdir.FullName, temppath, copySubDirs);
-                }
-            }           
-        }
-
-        void DirectoryCopy(string sourceDirName, string destDirName, bool copySubDirs)
+       
+        void LinuxRemoteCopy(string sourceDirName, string destDirName, bool copySubDirs)
         {           
             
             for(int i=0; i<dictPi.Count; i++)
@@ -354,7 +302,7 @@ namespace EvolutionConfigurator
                 {
                     string temppath = System.IO.Path.Combine(destDirName, subdir.Name);
                     temppath = temppath.Replace("\\", "/");
-                    DirectoryCopy(subdir.FullName, temppath, copySubDirs);
+                    LinuxRemoteCopy(subdir.FullName, temppath, copySubDirs);
                 }
             }
         }
